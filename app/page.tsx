@@ -1,71 +1,153 @@
 "use client";
-import { User } from "@/managers/user";
-import { Agent } from "@/managers/agent";
-import React, { useEffect, useRef } from "react";
-import DrawObjects from "@/canvas/drawObjects";
+import { collisionsMap } from "@/constants/collions";
+import React, { useEffect, useRef, useState } from "react";
+import { Sprite } from "@/managers/sprite";
+
+const TILE_SIZE = 32;
+const COLLISION_VALUE = 140;
 
 const Page = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const user = useRef(new User());
-  const agent = useRef([
-    new Agent(200, 200, "./agent-1.png"),
-    new Agent(400, 100, "./agent-2.png"),
-    new Agent(600, 200, "./agent-3.png"),
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  ]);
+  const speed = 2;
+  let keysPressed: { [key: string]: boolean } = {};
+  let animationFrameId: number;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Dynamically set canvas size based on collision map dimensions
+    const MAP_WIDTH = collisionsMap[0]?.length || 30;
+    const MAP_HEIGHT = collisionsMap.length || 20;
+    canvas.width = MAP_WIDTH * TILE_SIZE;
+    canvas.height = MAP_HEIGHT * TILE_SIZE;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = 800;
-    canvas.height = 400;
+    const mapImage = new Image();
+    const playerImage = new Image();
 
-    const moveUser = (direction: string) => {
-      user.current.move(direction);
+    mapImage.src = "/game-assets/map.png";
+    playerImage.src = "/game-assets/user.png";
 
-      DrawObjects({
-        ctx,
-        width: canvas.width,
-        height: canvas.height,
-        agent: agent.current, 
-        user: user.current,
+    let player: Sprite;
+
+    function handleMovements() {
+      window.addEventListener("keydown", (e) => {
+        keysPressed[e.key] = true;
       });
 
-      agent.current.forEach((agent) => agent.interact(user.current));
-    };
+      window.addEventListener("keyup", (e) => {
+        keysPressed[e.key] = false;
+        player.frameX = 0;
+      });
+    }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const directionMap: Record<string, string> = {
-        ArrowUp: "up",
-        ArrowDown: "down",
-        ArrowLeft: "left",
-        ArrowRight: "right",
-      };
+    function canMove(newX: number, newY: number): boolean {
+      const tileX = Math.floor(newX / TILE_SIZE);
+      const tileY = Math.floor(newY / TILE_SIZE);
 
-      if (event.key in directionMap) {
-        moveUser(directionMap[event.key]);
+      return (
+        tileX >= 0 &&
+        tileX < MAP_WIDTH &&
+        tileY >= 0 &&
+        tileY < MAP_HEIGHT &&
+        collisionsMap[tileY][tileX] !== COLLISION_VALUE
+      );
+    }
+
+    function movePlayer() {
+      let newX = player.x;
+      let newY = player.y;
+      let moving = false;
+
+      if (keysPressed["w"] && canMove(newX, newY - speed)) {
+        newY -= speed;
+        player.frameY = 1;
+        moving = true;
       }
+      if (keysPressed["a"] && canMove(newX - speed, newY)) {
+        newX -= speed;
+        player.frameY = 3;
+        moving = true;
+      }
+      if (keysPressed["s"] && canMove(newX, newY + speed)) {
+        newY += speed;
+        player.frameY = 0;
+        moving = true;
+      }
+      if (keysPressed["d"] && canMove(newX + speed, newY)) {
+        newX += speed;
+        player.frameY = 2;
+        moving = true;
+      }
+
+      if (moving) {
+        player.x = newX;
+        player.y = newY;
+        player.updateFrame();
+      }
+    }
+
+    function drawCollisionTiles(ctx: CanvasRenderingContext2D) {
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (collisionsMap[y][x] === COLLISION_VALUE) {
+            ctx.fillStyle = "transparent";
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
+
+      drawCollisionTiles(ctx);
+      movePlayer();
+      player.draw(ctx);
+
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    mapImage.onload = () => {
+      playerImage.onload = () => {
+        const frameWidth = playerImage.width / 4;
+        const frameHeight = playerImage.height / 4;
+
+        player = new Sprite(
+          canvas.width / 2 - frameWidth / 2,
+          canvas.height / 2 - frameHeight / 2,
+          playerImage,
+          frameWidth,
+          frameHeight
+        );
+
+        setLoaded(true);
+        handleMovements();
+        animate();
+      };
     };
 
-    DrawObjects({
-      ctx,
-      width: canvas.width,
-      height: canvas.height,
-      agent: agent.current,
-      user: user.current,
-    });
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("keydown", (e) => {
+        keysPressed[e.key] = true;
+      });
+      window.removeEventListener("keyup", (e) => {
+        keysPressed[e.key] = false;
+      });
+    };
   }, []);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-900">
-      <canvas ref={canvasRef} className="border border-white bg-black"></canvas>
+    <div className="flex items-center justify-center min-h-screen">
+      {!loaded && <p>Loading...</p>}
+      <canvas ref={canvasRef}></canvas>
     </div>
   );
 };
