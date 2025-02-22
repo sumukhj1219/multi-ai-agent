@@ -2,6 +2,7 @@
 import { collisionsMap } from "@/constants/collions";
 import React, { useEffect, useRef, useState } from "react";
 import { Sprite } from "@/managers/sprite";
+import { Agent } from "@/managers/agent";
 
 const TILE_SIZE = 32;
 const COLLISION_VALUE = 140;
@@ -18,7 +19,6 @@ const Page = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Dynamically set canvas size based on collision map dimensions
     const MAP_WIDTH = collisionsMap[0]?.length || 30;
     const MAP_HEIGHT = collisionsMap.length || 20;
     canvas.width = MAP_WIDTH * TILE_SIZE;
@@ -29,11 +29,16 @@ const Page = () => {
 
     const mapImage = new Image();
     const playerImage = new Image();
+    const agentImage = new Image()
 
     mapImage.src = "/game-assets/map.png";
     playerImage.src = "/game-assets/user.png";
+    agentImage.src = "/game-assets/agents.png"
+
 
     let player: Sprite;
+    let agent: Agent[] = [];
+
 
     function handleMovements() {
       window.addEventListener("keydown", (e) => {
@@ -106,7 +111,9 @@ const Page = () => {
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
-
+      agent.forEach((agent)=>{
+      agent.draw(ctx)
+      })
       drawCollisionTiles(ctx);
       movePlayer();
       player.draw(ctx);
@@ -131,6 +138,17 @@ const Page = () => {
         handleMovements();
         animate();
       };
+
+      agentImage.onload=()=>{
+        const frameWidth = agentImage.width / 8
+        const frameHeight = agentImage.height / 3
+
+        agent.push(new Agent(200, 200, 0, 0, frameHeight, frameWidth, agentImage))
+        agent.push(new Agent(400, 200, 0, 0, frameHeight, frameWidth, agentImage))
+        agent.push(new Agent(600, 300, 0, 0, frameHeight, frameWidth, agentImage))
+        agent.push(new Agent(800, 400, 0, 0, frameHeight, frameWidth, agentImage))
+
+      }
     };
 
     return () => {
