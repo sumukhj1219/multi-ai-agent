@@ -3,6 +3,7 @@ import { collisionsMap } from "@/constants/collions";
 import React, { useEffect, useRef, useState } from "react";
 import { Sprite } from "@/managers/sprite";
 import { Agent } from "@/managers/agent";
+import { ManagerDialog } from "@/components/managerDialog";
 
 const TILE_SIZE = 32;
 const COLLISION_VALUE = 140;
@@ -10,10 +11,12 @@ const COLLISION_VALUE = 140;
 const Page = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<Agent | null>(null);
 
   const speed = 2;
   let keysPressed: { [key: string]: boolean } = {};
   let animationFrameId: number;
+  let agents: Agent[] = [];
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,26 +32,26 @@ const Page = () => {
 
     const mapImage = new Image();
     const playerImage = new Image();
-    const agentImage = new Image()
+    const agentImage = new Image();
 
     mapImage.src = "/game-assets/map.png";
     playerImage.src = "/game-assets/user.png";
-    agentImage.src = "/game-assets/agents.png"
-
+    agentImage.src = "/game-assets/agents.png";
 
     let player: Sprite;
-    let agent: Agent[] = [];
 
+    function handleKeyDown(e: KeyboardEvent) {
+      keysPressed[e.key] = true;
+    }
+
+    function handleKeyUp(e: KeyboardEvent) {
+      keysPressed[e.key] = false;
+      player.frameX = 0;
+    }
 
     function handleMovements() {
-      window.addEventListener("keydown", (e) => {
-        keysPressed[e.key] = true;
-      });
-
-      window.addEventListener("keyup", (e) => {
-        keysPressed[e.key] = false;
-        player.frameX = 0;
-      });
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
     }
 
     function canMove(newX: number, newY: number): boolean {
@@ -97,27 +100,16 @@ const Page = () => {
       }
     }
 
-    function drawCollisionTiles(ctx: CanvasRenderingContext2D) {
-      for (let y = 0; y < MAP_HEIGHT; y++) {
-        for (let x = 0; x < MAP_WIDTH; x++) {
-          if (collisionsMap[y][x] === COLLISION_VALUE) {
-            ctx.fillStyle = "transparent";
-            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          }
-        }
-      }
-    }
-
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
-      agent.forEach((agent)=>{
-      agent.draw(ctx)
-      })
-      drawCollisionTiles(ctx);
+
+      agents.forEach((agent) => {
+        agent.draw(ctx);
+      });
+
       movePlayer();
       player.draw(ctx);
-
       animationFrameId = requestAnimationFrame(animate);
     }
 
@@ -139,33 +131,50 @@ const Page = () => {
         animate();
       };
 
-      agentImage.onload=()=>{
-        const frameWidth = agentImage.width / 8
-        const frameHeight = agentImage.height / 3
+      agentImage.onload = () => {
+        const frameWidth = agentImage.width / 8;
+        const frameHeight = agentImage.height / 3;
 
-        agent.push(new Agent(200, 200, 0, 0, frameHeight, frameWidth, agentImage))
-        agent.push(new Agent(400, 200, 0, 0, frameHeight, frameWidth, agentImage))
-        agent.push(new Agent(600, 300, 0, 0, frameHeight, frameWidth, agentImage))
-        agent.push(new Agent(800, 400, 0, 0, frameHeight, frameWidth, agentImage))
-
-      }
+        agents.push(new Agent(200, 200, 0, 0, frameHeight, frameWidth, agentImage, "Manager-GEMINI"));
+      };
     };
+
+    function handleInteraction(e: KeyboardEvent) {
+      if (e.key === "e") {
+        const interactingAgent = agents.find(
+          (agent) =>
+            player.x < agent.x + agent.frameWidth &&
+            player.x + player.frameWidth > agent.x &&
+            player.y < agent.y + agent.frameHeight &&
+            player.y + player.frameHeight > agent.y
+        );
+
+        if (interactingAgent) {
+          setActiveAgent(interactingAgent);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleInteraction);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("keydown", (e) => {
-        keysPressed[e.key] = true;
-      });
-      window.removeEventListener("keyup", (e) => {
-        keysPressed[e.key] = false;
-      });
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("keydown", handleInteraction);
     };
   }, []);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      {!loaded && <p>Loading...</p>}
+    <div className="relative flex flex-col items-center">
       <canvas ref={canvasRef}></canvas>
+      {activeAgent && (
+        <ManagerDialog
+          active={!!activeAgent}
+          agent={activeAgent}
+          onClose={() => setActiveAgent(null)}
+        />
+      )}
     </div>
   );
 };
