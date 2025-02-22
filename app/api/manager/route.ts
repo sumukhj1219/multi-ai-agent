@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json();
+    const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL!
 
     if (!prompt) {
       return NextResponse.json(
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
-            { parts: [{ text: `Decide if this prompt should be answered by Gemini or DeepSeek. Answer only 'Gemini' or 'DeepSeek': "${prompt}"` }] }
+            { parts: [{ text: `Decide if this prompt should be answered by Gemini or DeepSeek or Mistral. Answer only 'Gemini' or 'DeepSeek' or 'Mistral': "${prompt}"` }] }
           ],
         }),
       }
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     if (chosenModel === "DeepSeek") {
       console.log("Using DeepSeek AI...");
-      const deepSeekResponse = await fetch("http://localhost:11434/api/generate", {
+      const deepSeekResponse = await fetch(OLLAMA_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       const deepSeekData = await deepSeekResponse.json();
       console.log(deepSeekData)
       responseText = deepSeekData?.response || "No response from DeepSeek AI";
-    } else {
+    } if (chosenModel === "Gemini") {
       console.log("Using Gemini AI...");
       const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${geminiApiKey}`,
@@ -70,6 +71,18 @@ export async function POST(req: NextRequest) {
 
       const geminiData = await geminiResponse.json();
       responseText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini AI";
+    } else {
+      const mistralResponse = await fetch(OLLAMA_BASE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "mistral:7b-instruct-q4_K",
+          prompt: prompt,
+          stream: false,
+        }),
+      });
+      const mistralData = await mistralResponse.json()
+      console.log(mistralData)
     }
 
     return NextResponse.json({ response: responseText });
