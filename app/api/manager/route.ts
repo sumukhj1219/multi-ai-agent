@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
             {
               parts: [
                 {
-                  text: `Decide if this prompt should be answered by Gemini, DeepSeek, or Mistral. Answer only 'Gemini' or 'DeepSeek' or 'Mistral': "${prompt}"`,
+                  text: `Decide if this prompt should be answered by Gemini, DeepSeek, or LLama. Answer only 'Gemini' or 'DeepSeek' or 'LLama': "${prompt}"`,
                 },
               ],
             },
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (chosenModel === "DeepSeek") {
       console.log("Using DeepSeek AI...");
-      const deepSeekResponse = await fetch("https://api.deepseek.com/chat", {
+      const deepSeekResponse = await fetch(process.env.OLLAMA_BASE_URL!, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,16 +79,29 @@ export async function POST(req: NextRequest) {
       responseText =
         geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini AI";
     } else {
-      console.log("Using Mistral via Hugging Face...");
-      const hfClient = new HfInference(hfApiKey);
-      const chatCompletion = await hfClient.chatCompletion({
-        model: "mistralai/Mistral-7B-Instruct-v0.3",
-        messages: [{ role: "user", content: prompt }],
-        provider: "novita",
-        max_tokens: 500,
+      // console.log("Using Mistral via Hugging Face...");
+      // const hfClient = new HfInference(hfApiKey);
+      // const chatCompletion = await hfClient.chatCompletion({
+      //   model: "mistralai/Mistral-7B-Instruct-v0.3",
+      //   messages: [{ role: "user", content: prompt }],
+      //   provider: "novita",
+      //   max_tokens: 500,
+      // });
+
+      // responseText = chatCompletion.choices?.[0]?.message?.content || "No response from Mistral AI";
+      console.log("Using Llama AI...");
+      const llamaResponse = await fetch(process.env.OLLAMA_BASE_URL!, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama3.2:3b",
+          prompt,
+          stream: false,
+        }),
       });
 
-      responseText = chatCompletion.choices?.[0]?.message?.content || "No response from Mistral AI";
+      const llamaData = await llamaResponse.json();
+      responseText = llamaData?.response || "No response from DeepSeek AI";
     }
 
     return NextResponse.json({ response: responseText });
