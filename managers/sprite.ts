@@ -10,8 +10,8 @@ interface SpriteProps{
     ctx: CanvasRenderingContext2D
 }
 
-let FRAME_DELAY = 0
-let FRAME_SPEED = 1.5
+let FRAME_DELAY = 10
+let FRAME_SPEED = 1000
 
 export class Sprite{
     x: number

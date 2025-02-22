@@ -166,12 +166,12 @@ const Page = () => {
   }, []);
 
   return (
-    <div className="relative flex flex-col items-center">
+    <div className="relative flex flex-col mx-auto justify-center min-h-screen items-center ">
       <canvas ref={canvasRef}></canvas>
       {activeAgent && (
         <ManagerDialog
           active={!!activeAgent}
-          agent={activeAgent}
+          agents={activeAgent}
           onClose={() => setActiveAgent(null)}
         />
       )}

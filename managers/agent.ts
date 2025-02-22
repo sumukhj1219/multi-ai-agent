@@ -55,6 +55,7 @@ export class Agent {
             if (response.status === 200 && response.data) {
                 this.response = response.data.response; 
                 console.log("Gemini Response:", this.response);
+                return this.response
             } else {
                 console.error("Unexpected response from server:", response);
             }
