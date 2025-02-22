@@ -3,7 +3,7 @@ import { collisionsMap } from "@/constants/collions";
 import React, { useEffect, useRef, useState } from "react";
 import { Sprite } from "@/managers/sprite";
 import { Agent } from "@/managers/agent";
-import { ManagerDialog } from "@/components/managerDialog";
+import  {ManagerDialog}  from "@/components/managerDialog";
 
 const TILE_SIZE = 32;
 const COLLISION_VALUE = 140;

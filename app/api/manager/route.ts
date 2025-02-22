@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const geminiApiKey = process.env.GEMINI_API_KEY!;
-    const hfApiKey = process.env.HUGGING_FACE_APIKEY!; 
+    const hfApiKey = process.env.HUGGINGFACE_API_KEY!; 
 
     if (!geminiApiKey || !hfApiKey) {
       return NextResponse.json(
