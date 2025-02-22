@@ -12,9 +12,9 @@ const Page = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [activeAgent, setActiveAgent] = useState<Agent | null>(null);
-
   const speed = 2;
-  let keysPressed: { [key: string]: boolean } = {};
+  
+  const keysPressed = useRef<{ [key: string]: boolean }>({});
   let animationFrameId: number;
   let agents: Agent[] = [];
 
@@ -41,11 +41,11 @@ const Page = () => {
     let player: Sprite;
 
     function handleKeyDown(e: KeyboardEvent) {
-      keysPressed[e.key] = true;
+      keysPressed.current[e.key] = true;
     }
 
     function handleKeyUp(e: KeyboardEvent) {
-      keysPressed[e.key] = false;
+      keysPressed.current[e.key] = false;
       player.frameX = 0;
     }
 
@@ -72,22 +72,22 @@ const Page = () => {
       let newY = player.y;
       let moving = false;
 
-      if (keysPressed["w"] && canMove(newX, newY - speed)) {
+      if (keysPressed.current["w"] && canMove(newX, newY - speed)) {
         newY -= speed;
         player.frameY = 1;
         moving = true;
       }
-      if (keysPressed["a"] && canMove(newX - speed, newY)) {
+      if (keysPressed.current["a"] && canMove(newX - speed, newY)) {
         newX -= speed;
         player.frameY = 3;
         moving = true;
       }
-      if (keysPressed["s"] && canMove(newX, newY + speed)) {
+      if (keysPressed.current["s"] && canMove(newX, newY + speed)) {
         newY += speed;
         player.frameY = 0;
         moving = true;
       }
-      if (keysPressed["d"] && canMove(newX + speed, newY)) {
+      if (keysPressed.current["d"] && canMove(newX + speed, newY)) {
         newX += speed;
         player.frameY = 2;
         moving = true;
@@ -104,9 +104,7 @@ const Page = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(mapImage, 0, 0, canvas.width, canvas.height);
 
-      agents.forEach((agent) => {
-        agent.draw(ctx);
-      });
+      agents.forEach(agent => agent.draw(ctx));
 
       movePlayer();
       player.draw(ctx);
@@ -135,23 +133,35 @@ const Page = () => {
         const frameWidth = agentImage.width / 8;
         const frameHeight = agentImage.height / 3;
 
-        agents.push(new Agent(200, 200, 0, 0, frameHeight, frameWidth, agentImage, "Manager-GEMINI"));
+        agents = [
+          new Agent(canvas.width / 2, canvas.height / 2 - 160, 0, 0, frameHeight, frameWidth, agentImage, "MANAGER-GEMINI"),
+
+          new Agent(150, 100, 0, 0, frameHeight, frameWidth, agentImage, "DR1-1"),
+          new Agent(200, 100, 0, 0, frameHeight, frameWidth, agentImage, "DR1-2"),
+          new Agent(200, 150, 0, 0, frameHeight, frameWidth, agentImage, "DR1-3"),
+          new Agent(150, 150, 0, 0, frameHeight, frameWidth, agentImage, "DR1-4"),
+
+          new Agent(700, 150, 0, 0, frameHeight, frameWidth, agentImage, "Mist-1"),
+          new Agent(750, 150, 0, 0, frameHeight, frameWidth, agentImage, "Mist-2"),
+          new Agent(750, 200, 0, 0, frameHeight, frameWidth, agentImage, "Mist-3"),
+          new Agent(700, 200, 0, 0, frameHeight, frameWidth, agentImage, "Mist-4"),
+        ];
       };
     };
 
     function handleInteraction(e: KeyboardEvent) {
       if (e.key === "e") {
-        const interactingAgent = agents.find(
-          (agent) =>
+        agents.forEach(agent => {
+          if (
             player.x < agent.x + agent.frameWidth &&
             player.x + player.frameWidth > agent.x &&
             player.y < agent.y + agent.frameHeight &&
-            player.y + player.frameHeight > agent.y
-        );
-
-        if (interactingAgent) {
-          setActiveAgent(interactingAgent);
-        }
+            player.y + player.frameHeight > agent.y && 
+            agent.name === "MANAGER-GEMINI"
+          ) {
+            setActiveAgent(agent);
+          }
+        });
       }
     }
 
@@ -166,7 +176,7 @@ const Page = () => {
   }, []);
 
   return (
-    <div className="relative flex flex-col mx-auto justify-center min-h-screen items-center ">
+    <div className="relative flex flex-col mx-auto justify-center min-h-screen items-center">
       <canvas ref={canvasRef}></canvas>
       {activeAgent && (
         <ManagerDialog

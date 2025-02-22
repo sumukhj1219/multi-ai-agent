@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { HfInference } from "@huggingface/inference";
 
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json();
-    const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL!
 
     if (!prompt) {
       return NextResponse.json(
@@ -12,11 +12,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY!;
+    const hfApiKey = process.env.HUGGING_FACE_APIKEY!; 
 
-    if (!geminiApiKey) {
+    if (!geminiApiKey || !hfApiKey) {
       return NextResponse.json(
-        { message: "Missing GEMINI_API_KEY in environment variables" },
+        { message: "Missing API keys in environment variables" },
         { status: 500 }
       );
     }
@@ -28,7 +29,13 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
-            { parts: [{ text: `Decide if this prompt should be answered by Gemini or DeepSeek or Mistral. Answer only 'Gemini' or 'DeepSeek' or 'Mistral': "${prompt}"` }] }
+            {
+              parts: [
+                {
+                  text: `Decide if this prompt should be answered by Gemini, DeepSeek, or Mistral. Answer only 'Gemini' or 'DeepSeek' or 'Mistral': "${prompt}"`,
+                },
+              ],
+            },
           ],
         }),
       }
@@ -43,20 +50,19 @@ export async function POST(req: NextRequest) {
 
     if (chosenModel === "DeepSeek") {
       console.log("Using DeepSeek AI...");
-      const deepSeekResponse = await fetch(OLLAMA_BASE_URL, {
+      const deepSeekResponse = await fetch("https://api.deepseek.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "deepseek-r1:1.5b",
-          prompt: prompt,
-          stream: false
+          prompt,
+          stream: false,
         }),
       });
 
       const deepSeekData = await deepSeekResponse.json();
-      console.log(deepSeekData)
       responseText = deepSeekData?.response || "No response from DeepSeek AI";
-    } if (chosenModel === "Gemini") {
+    } else if (chosenModel === "Gemini") {
       console.log("Using Gemini AI...");
       const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${geminiApiKey}`,
@@ -70,19 +76,19 @@ export async function POST(req: NextRequest) {
       );
 
       const geminiData = await geminiResponse.json();
-      responseText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini AI";
+      responseText =
+        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini AI";
     } else {
-      const mistralResponse = await fetch(OLLAMA_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "mistral:7b-instruct-q4_K",
-          prompt: prompt,
-          stream: false,
-        }),
+      console.log("Using Mistral via Hugging Face...");
+      const hfClient = new HfInference(hfApiKey);
+      const chatCompletion = await hfClient.chatCompletion({
+        model: "mistralai/Mistral-7B-Instruct-v0.3",
+        messages: [{ role: "user", content: prompt }],
+        provider: "novita",
+        max_tokens: 500,
       });
-      const mistralData = await mistralResponse.json()
-      console.log(mistralData)
+
+      responseText = chatCompletion.choices?.[0]?.message?.content || "No response from Mistral AI";
     }
 
     return NextResponse.json({ response: responseText });
