@@ -141,10 +141,15 @@ const Page = () => {
           new Agent(200, 150, 0, 0, frameHeight, frameWidth, agentImage, "DR1-3"),
           new Agent(150, 150, 0, 0, frameHeight, frameWidth, agentImage, "DR1-4"),
 
-          new Agent(700, 150, 0, 0, frameHeight, frameWidth, agentImage, "Mist-1"),
-          new Agent(750, 150, 0, 0, frameHeight, frameWidth, agentImage, "Mist-2"),
-          new Agent(750, 200, 0, 0, frameHeight, frameWidth, agentImage, "Mist-3"),
-          new Agent(700, 200, 0, 0, frameHeight, frameWidth, agentImage, "Mist-4"),
+          new Agent(700, 150, 0, 0, frameHeight, frameWidth, agentImage, "Ll-1"),
+          new Agent(750, 150, 0, 0, frameHeight, frameWidth, agentImage, "Ll-2"),
+          new Agent(750, 200, 0, 0, frameHeight, frameWidth, agentImage, "Ll-3"),
+          new Agent(700, 200, 0, 0, frameHeight, frameWidth, agentImage, "Ll-4"),
+
+          new Agent(700, 400, 0, 0, frameHeight, frameWidth, agentImage, "G-1"),
+          new Agent(750, 400, 0, 0, frameHeight, frameWidth, agentImage, "G-2"),
+          new Agent(750, 450, 0, 0, frameHeight, frameWidth, agentImage, "G-3"),
+          new Agent(700, 450, 0, 0, frameHeight, frameWidth, agentImage, "G-4"),
         ];
       };
     };

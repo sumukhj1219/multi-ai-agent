@@ -16,8 +16,9 @@ import { Loader } from "lucide-react"
 
 export function ManagerDialog({ active, onClose, agents }: { active: boolean; onClose: () => void; agents: Agent }) {
     const [query, setQuery] = useState("")
-    const [response, setResponse] = useState("")
+    const [originalResponse, setOriginalResponse] = useState("")
     const [showResponseDialog, setShowResponseDialog] = useState(false)
+    const [model, setModel] = useState("")
     const [loading, setLoading] = useState(false)
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -26,11 +27,16 @@ export function ManagerDialog({ active, onClose, agents }: { active: boolean; on
 
         try {
             const agentResponse = await agents.execute(query)
-            setResponse(agentResponse)
+
+            if (!agentResponse) {
+                throw new Error("No response from AI")
+            }
+            setModel(agentResponse.model)
+            setOriginalResponse(agentResponse.originalResponse)
             setShowResponseDialog(true)
         } catch (error) {
             console.log("Error executing agent:", error)
-            setResponse("Error fetching response. Please try again.")
+            setOriginalResponse("Error fetching response. Please try again.")
         } finally {
             setLoading(false)
         }
@@ -40,12 +46,12 @@ export function ManagerDialog({ active, onClose, agents }: { active: boolean; on
         <>
             {/* Query Input Dialog */}
             <Dialog open={active} onOpenChange={onClose}>
-                <DialogContent className="sm:max-w-[450px] bg-white shadow-lg rounded-lg">
+                <DialogContent className="sm:max-w-[450px] bg-white shadow-lg rounded-lg p-6">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-semibold text-gray-800">
+                        <DialogTitle className="text-xl font-semibold text-gray-900">
                             Interact with {agents?.name || "Unknown Agent"}
                         </DialogTitle>
-                        <DialogDescription className="text-sm text-gray-500">
+                        <DialogDescription className="text-sm text-gray-600">
                             Ask questions and get AI-powered responses.
                         </DialogDescription>
                     </DialogHeader>
@@ -84,15 +90,20 @@ export function ManagerDialog({ active, onClose, agents }: { active: boolean; on
             <Dialog open={showResponseDialog} onOpenChange={() => setShowResponseDialog(false)}>
                 <DialogContent className="max-w-xl bg-white shadow-lg rounded-lg p-6">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-semibold text-gray-800">
-                            Response from {agents?.name || "AI Agent"}
+                        <DialogTitle className="text-lg font-semibold text-gray-900">
+                            Response from {model || "AI Agent"}
                         </DialogTitle>
                     </DialogHeader>
                     
-                    {/* Scrollable Response Box */}
-                    <div className="max-h-[300px] overflow-y-auto border border-gray-300 p-4 rounded-md bg-gray-100 text-sm text-gray-800">
-                        {response || "Waiting for response..."}
+                    {/* Original Response Box */}
+                    <div className="mb-4">
+                        <h3 className="text-md font-semibold text-gray-800">Original Response</h3>
+                        <div className="max-h-[250px] overflow-y-auto border border-gray-300 p-4 rounded-md bg-gray-100 text-sm text-gray-900 whitespace-pre-line leading-relaxed">
+                            {originalResponse || "Waiting for response..."}
+                        </div>
                     </div>
+
+                    
 
                     <DialogFooter>
                         <Button onClick={() => setShowResponseDialog(false)}>Close</Button>

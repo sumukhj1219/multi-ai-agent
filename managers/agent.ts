@@ -8,8 +8,9 @@ export class Agent {
   frameHeight: number
   frameWidth: number
   image: HTMLImageElement
-  response: any
+  response: { model:string, originalResponse: string } | null
   name: string
+
   constructor(
     x: number,
     y: number,
@@ -28,6 +29,7 @@ export class Agent {
     this.frameHeight = frameHeight
     this.image = image
     this.name = name
+    this.response = null
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -40,12 +42,11 @@ export class Agent {
       this.x,
       this.y,
       this.frameWidth,
-      this.frameHeight,
-
+      this.frameHeight
     )
-    ctx.font = "14px Arial";
-    ctx.fillStyle = "blue";
-    ctx.textAlign = "center";
+    ctx.font = "14px Arial"
+    ctx.fillStyle = "blue"
+    ctx.textAlign = "center"
     ctx.fillText(this.name, this.x + this.frameWidth / 2, this.y - 1)
   }
 
@@ -56,18 +57,22 @@ export class Agent {
   async execute(prompt: string) {
     try {
       const response = await axios.post("/api/manager", { prompt });
-
+  
       if (response.status === 200 && response.data) {
-        this.response = response.data.response;
-        console.log("Gemini Response:", this.response);
-        return this.response
+        this.response = {
+          model: response.data.modelUsed || "Unknown Model",
+          originalResponse: response.data.originalResponse || "No response available.",
+        };
+        console.log("AI Responses:", this.response);
+        return this.response;
       } else {
         console.error("Unexpected response from server:", response);
+        return { model: "Unknown Model", originalResponse: "Error fetching response"};
       }
     } catch (error) {
       console.error("Error executing prompt:", error);
+      return { model: "Unknown Model", originalResponse: "Error fetching response"};
     }
   }
-
-
+  
 }
